@@ -15,20 +15,20 @@ import msal
 import os
 import uuid
 
-CLIENT_ID = os.environ.get('CLIENT_ID', '')
-CLIENT_SECRET = os.environ.get('CLIENT_SECRET', '')
+CLIENT_ID = os.environ.get("CLIENT_ID", "")
+CLIENT_SECRET = os.environ.get("CLIENT_SECRET", "")
 AUTHORITY = os.environ.get(
-    'AUTHORITY', 'https://login.microsoftonline.com/common')
-REDIRECT_PATH = os.environ.get('REDIRECT_PATH', 'collective.msal.getAToken')
+    "AUTHORITY", "https://login.microsoftonline.com/common"
+)
+REDIRECT_PATH = os.environ.get("REDIRECT_PATH", "collective.msal.getAToken")
 
 
 zmidir = os.path.join(os.path.dirname(__file__), "zmi")
 
 
 def url_for(code, **kw):
-    routes = {'authorized': kw.get('authorized', '/getAToken'),
-              'index': '/'}
-    return api.portal.get().absolute_url() + routes.get(code, '404')
+    routes = {"authorized": kw.get("authorized", "/getAToken"), "index": "/"}
+    return api.portal.get().absolute_url() + routes.get(code, "404")
 
 
 @implementer(ICollectiveMsal)
@@ -36,7 +36,8 @@ class MSALAuthPlugin(BasePlugin):
     """Multi-plugin to do MSAzure authentication
 
     """
-    meta_type = 'Microsoft AZURE PAS Plugin'
+
+    meta_type = "Microsoft AZURE PAS Plugin"
     security = ClassSecurityInfo()
 
     _properties = (
@@ -64,19 +65,13 @@ class MSALAuthPlugin(BasePlugin):
             "type": "string",
             "mode": "w",
         },
-        {
-            "id": "SCOPE",
-            "label": "SCOPE",
-            "type": "lines",
-            "mode": "w",
-        },
+        {"id": "SCOPE", "label": "SCOPE", "type": "lines", "mode": "w",},
         {
             "id": "AUTOGROUPS",
             "label": "Additional Roles to add to this user",
             "type": "lines",
             "mode": "w",
         },
-
     )
 
     def __init__(self, id, title=None, **kw):
@@ -87,23 +82,30 @@ class MSALAuthPlugin(BasePlugin):
         self.REDIRECT_PATH = REDIRECT_PATH
         self.AUTHORITY = AUTHORITY
         self.SCOPE = [b"User.ReadBasic.All"]
-        self.ENDPOINT = b'https://graph.microsoft.com/v1.0/users'
-        self.AUTOGROUPS = [b'Member', ]
+        self.ENDPOINT = b"https://graph.microsoft.com/v1.0/users"
+        self.AUTOGROUPS = [
+            b"Member",
+        ]
         self.init_settings()
 
     @property
     def scope(self):
         """
         """
-        return list(map(lambda x: isinstance(x, bytes) and
-                        x.decode() or x, self.SCOPE))
+        return list(
+            map(lambda x: isinstance(x, bytes) and x.decode() or x, self.SCOPE)
+        )
 
     @property
     def autogroups(self):
         """
         """
-        return list(map(lambda x: isinstance(x, bytes) and
-                        x.decode() or x, self.AUTOGROUPS))
+        return list(
+            map(
+                lambda x: isinstance(x, bytes) and x.decode() or x,
+                self.AUTOGROUPS,
+            )
+        )
 
     @security.private
     def is_plugin_active(self, iface):
@@ -131,19 +133,20 @@ class MSALAuthPlugin(BasePlugin):
         pas = self._getPAS()
         if pas is None:
             return
-        if 'session' not in pas:
+        if "session" not in pas:
             return
         self._remember_identity(user_id, result)
 
         info = pas._verifyUser(pas.plugins, user_id=user_id)
         if info is None:
             logger.debug(
-                'No user found matching header. Will not set up session.')
+                "No user found matching header. Will not set up session."
+            )
             return
         request = self.REQUEST
-        response = request['RESPONSE']
+        response = request["RESPONSE"]
         pas.session._setupSession(user_id, response)
-        logger.debug('Done setting up session/ticket for %s' % user_id)
+        logger.debug("Done setting up session/ticket for %s" % user_id)
 
     @security.private
     def enumerateUsers(
@@ -153,7 +156,7 @@ class MSALAuthPlugin(BasePlugin):
         exact_match=False,
         sort_by=None,
         max_results=None,
-        **kw
+        **kw,
     ):
         """we implement only exact matches
         """
@@ -169,11 +172,7 @@ class MSALAuthPlugin(BasePlugin):
             return
 
         ret.append(
-            {
-                'id': userid,
-                'login': userid,
-                'pluginid': pluginid,
-            }
+            {"id": userid, "login": userid, "pluginid": pluginid,}
         )
         return ret
 
@@ -185,23 +184,26 @@ class MSALAuthPlugin(BasePlugin):
 
         ob = self._useridentities_by_userid.get(user_id)
         if ob is not None:
-            properties = dict(username=ob.get('preferred_username'),
-                              email=ob.get('email'),
-                              fullname=ob.get('name')
-                              )
+            properties = dict(
+                email=ob.get("email"),
+                username=ob.get("unique_name"),
+                fullname=f"{ob.get('given_name')} {ob.get('family_name')}",
+            )
 
-            psheet = UserPropertySheet(self.getId(),
-                                       schema=None,
-                                       **properties,
-                                       )
+            psheet = UserPropertySheet(
+                self.getId(), schema=None, **properties,
+            )
             return psheet
 
         return default
 
     def _build_msal_app(self, cache=None, authority=None):
         return msal.ConfidentialClientApplication(
-            self.CLIENT_ID, authority=authority or self.AUTHORITY,
-            client_credential=self.CLIENT_SECRET, token_cache=cache)
+            self.CLIENT_ID,
+            authority=authority or self.AUTHORITY,
+            client_credential=self.CLIENT_SECRET,
+            token_cache=cache,
+        )
 
     def _load_cache(self,):
         cache = msal.SerializableTokenCache()
@@ -210,14 +212,21 @@ class MSALAuthPlugin(BasePlugin):
         return cache
 
     def _save_cache(self, cache):
-        if cache.has_state_changed:
+        if cache and cache.has_state_changed:
             self.session["token_cache"] = cache.serialize()
 
     def _build_auth_url(self, authority=None, scopes=None, state=None):
-        return self._build_msal_app(authority=authority).get_authorization_request_url(
+        url = self._build_msal_app(
+            authority=authority
+        ).get_authorization_request_url(
             scopes or [],
             state=state or str(uuid.uuid4()),
-            redirect_uri=url_for("authorized", _external=True, authorized=self.REDIRECT_PATH))
+            redirect_uri=url_for(
+                "authorized", _external=True, authorized=self.REDIRECT_PATH
+            ),
+        )
+        # TODO rendere migliore questa cosa
+        return url + "&resource=urn:qamf:CMP-test&response_mode=form_post"
 
     # ##
     # pas_interfaces.plugins.IRolesPlugin

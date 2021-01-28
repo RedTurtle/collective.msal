@@ -25,9 +25,7 @@ class AuthTokenView(BrowserView):
         acl_msal = pas.get("acl_msal")
 
         if request.get("code"):
-            # TODO verificare utilizzo della cache
-            # cache = acl_msal._load_cache()
-            cache = None
+            cache = acl_msal._load_cache()
 
             result = acl_msal._build_msal_app(
                 cache=cache
@@ -43,8 +41,6 @@ class AuthTokenView(BrowserView):
             if "error" in result:
                 raise Unauthorized
 
-            # Preso lo unique_name come identificativo unico dell'utente che si logga
-            # verificare di passare alla funzione che setta i cookie anche l'access_token che non è fra i claim
             userid = result.get("id_token_claims").get("unique_name")
             acl_msal._setupTicket(userid, result.get("id_token_claims"))
 

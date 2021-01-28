@@ -125,7 +125,7 @@ class MSALAuthPlugin(BasePlugin):
         self._useridentities_by_userid[userid] = result
         return result
 
-    def _setupTicket(self, user_id, result):
+    def _setupTicket(self, user_id, persistent_info, not_persistent_info={}):
         """Set up authentication ticket (__ac cookie) with plone.session.
 
         Only call this when self.create_ticket is True.
@@ -135,7 +135,7 @@ class MSALAuthPlugin(BasePlugin):
             return
         if "session" not in pas:
             return
-        self._remember_identity(user_id, result)
+        self._remember_identity(user_id, persistent_info)
 
         info = pas._verifyUser(pas.plugins, user_id=user_id)
         if info is None:
@@ -143,8 +143,14 @@ class MSALAuthPlugin(BasePlugin):
                 "No user found matching header. Will not set up session."
             )
             return
+
         request = self.REQUEST
         response = request["RESPONSE"]
+
+        # set cookie
+        for info in not_persistent_info:
+            response.setCookie(info, not_persistent_info[info])
+
         pas.session._setupSession(user_id, response)
         logger.debug("Done setting up session/ticket for %s" % user_id)
 

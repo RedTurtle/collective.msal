@@ -191,7 +191,7 @@ class MSALAuthPlugin(BasePlugin):
         ob = self._useridentities_by_userid.get(user_id)
         if ob is not None:
             properties = dict(
-                email=ob.get("email"),
+                email=ob.get("email") or ob.get("unique_name"),
                 username=ob.get("unique_name"),
                 fullname=f"{ob.get('given_name')} {ob.get('family_name')}",
             )

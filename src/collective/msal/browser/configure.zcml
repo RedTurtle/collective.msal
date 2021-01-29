@@ -25,7 +25,6 @@
         class=".auth.AuthTokenView"
         />
 
-
     <browser:view
         name="collective.msal.login"
         for="*"

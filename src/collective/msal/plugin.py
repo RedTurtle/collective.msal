@@ -222,7 +222,7 @@ class MSALAuthPlugin(BasePlugin):
             self.session["token_cache"] = cache.serialize()
 
     def _build_auth_url(self, authority=None, scopes=None, state=None):
-        url = self._build_msal_app(
+        return self._build_msal_app(
             authority=authority
         ).get_authorization_request_url(
             scopes or [],
@@ -231,8 +231,6 @@ class MSALAuthPlugin(BasePlugin):
                 "authorized", _external=True, authorized=self.REDIRECT_PATH
             ),
         )
-        # TODO rendere migliore questa cosa
-        return url + "&resource=urn:qamf:CMP-test&response_mode=form_post"
 
     # ##
     # pas_interfaces.plugins.IRolesPlugin

@@ -25,7 +25,8 @@ class AuthTokenView(BrowserView):
         acl_msal = pas.get("acl_msal")
 
         if request.get("code"):
-            cache = acl_msal._load_cache()
+            # cache = acl_msal._load_cache()
+            cache = None
 
             result = acl_msal._build_msal_app(
                 cache=cache
